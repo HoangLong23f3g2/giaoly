@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Thuyết Giảng Thông Minh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .file-row:hover { background-color: #f8fafc; border-left: 4px solid #3b82f6; }
+        .modal-open { overflow: hidden; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+
+    <div class="max-w-6xl mx-auto p-6 md:p-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Thư Viện Thuyết Giảng</h1>
+                <p class="text-slate-500 mt-1">Hệ thống quản lý nội dung bài giảng tập trung</p>
+            </div>
+            
+            <div class="relative w-full md:w-80">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                <input type="text" id="searchInput" placeholder="Tìm tên bài giảng..." 
+                       class="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+        </div>
+
+        <div id="categoryContainer"></div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col transition-all scale-95 opacity-0" id="modalContent">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <h3 id="modalTitle" class="text-xl font-bold text-slate-800"></h3>
+                <button onclick="closeModal()" class="p-2 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-full transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="p-8 overflow-y-auto text-slate-700 leading-relaxed text-lg whitespace-pre-line"></div>
+            <div class="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                <button onclick="downloadDocx()" class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-200 transition active:scale-95">
+                    <i data-lucide="file-down"></i> Tải file Word (.docx)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**********************************************************
+         * 1. PHẦN DỮ LIỆU (BẠN CHỈ CẦN CHỈNH SỬA Ở ĐÂY)
+         **********************************************************/
+        const lectureData = [
+            {
+                categoryName: "Danh mục 1: Đạo Đức Học",
+                lectures: [
+                    {
+                        name: "Bài 01: Lòng biết ơn cha mẹ",
+                        transcript: "Nội dung transcript đầy đủ của bài 1...",
+                        summary: "Tóm tắt ngắn gọn bài 1: Công lao và cách báo hiếu.",
+                        link: "https://youtube.com/link1"
+                    },
+                    {
+                        name: "Bài 02: Sự trung thực trong cuộc sống",
+                        transcript: "Nội dung bài 2 nói về sự thật...",
+                        summary: "Tóm tắt bài 2: Giá trị của lời nói thật.",
+                        link: "#"
+                    }
+                ]
+            },
+            {
+                categoryName: "Danh mục 2: Kỹ Năng Sống",
+                lectures: [
+                    {
+                        name: "Bài 03: Cách quản lý thời gian",
+                        transcript: "Nội dung chi tiết về Pomodoro và Ma trận Eisenhower...",
+                        summary: "Tóm tắt: 5 bước để làm chủ thời gian.",
+                        link: "https://example.com"
+                    }
+                ]
+            }
+            // Để thêm danh mục mới, copy khối { categoryName: "...", lectures: [...] } vào đây
+        ];
+
+        /**********************************************************
+         * 2. PHẦN LOGIC XỬ LÝ (KHÔNG CẦN THAY ĐỔI)
+         **********************************************************/
+
+        // Khởi tạo icons
+        lucide.createIcons();
+
+        let currentTitle = "";
+        let currentContent = "";
+
+        // Hàm hiển thị dữ liệu ra màn hình
+        // Hàm hiển thị dữ liệu ra màn hình (Đã sửa lỗi hiển thị cột)
+        function renderLectures(data) {
+			const container = document.getElementById('categoryContainer');
+			container.innerHTML = '';
+
+			data.forEach((category, catIndex) => {
+				const catSection = document.createElement('div');
+				catSection.className = 'mb-10';
+				catSection.innerHTML = `
+					<h2 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+						<i data-lucide="folder-open" class="w-5 h-5"></i>
+						${category.categoryName}
+					</h2>
+					
+					<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+						<div class="flex bg-slate-50 p-4 font-bold text-slate-500 text-xs uppercase tracking-widest border-b">
+							<div class="flex-1">Tên Bài Giảng</div> <div class="w-24 text-center">Transcript</div> <div class="w-24 text-center">Tóm Tắt</div>    <div class="w-20 text-center">Link</div>       </div>
+						<div id="cat-list-${catIndex}"></div>
+					</div>
+				`;
+				container.appendChild(catSection);
+
+				const listContainer = document.getElementById(`cat-list-${catIndex}`);
+				category.lectures.forEach(lec => {
+					const row = document.createElement('div');
+					// file-row giờ dùng flex để các cột icon khít lại với nhau
+					row.className = 'file-row flex p-4 border-b border-slate-50 items-center transition-all duration-200';
+					row.innerHTML = `
+						<div class="flex-1 font-semibold text-slate-700 pr-4 truncate">${lec.name}</div>
+						
+						<div class="w-24 text-center">
+							<button onclick="openModal('${lec.name} - Transcript', \`${lec.transcript}\`)" 
+									class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition inline-flex justify-center">
+								<i data-lucide="file-text" class="w-5 h-5"></i>
+							</button>
+						</div>
+						
+						<div class="w-24 text-center">
+							<button onclick="openModal('${lec.name} - Tóm tắt', \`${lec.summary}\`)" 
+									class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition inline-flex justify-center">
+								<i data-lucide="align-left" class="w-5 h-5"></i>
+							</button>
+						</div>
+						
+						<div class="w-20 text-center">
+							<a href="${lec.link}" target="_blank" 
+							   class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg inline-flex justify-center transition">
+								<i data-lucide="external-link" class="w-5 h-5"></i>
+							</a>
+						</div>
+					`;
+					listContainer.appendChild(row);
+				});
+			});
+			lucide.createIcons();
+		}
+
+        // Tìm kiếm bài giảng
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filteredData = lectureData.map(cat => ({
+                ...cat,
+                lectures: cat.lectures.filter(lec => lec.name.toLowerCase().includes(term))
+            })).filter(cat => cat.lectures.length > 0);
+            renderLectures(filteredData);
+        });
+
+        // Modal Logic
+        function openModal(title, content) {
+            currentTitle = title;
+            currentContent = content;
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerText = content;
+            
+            const modal = document.getElementById('modal');
+            const contentBox = document.getElementById('modalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                contentBox.classList.remove('scale-95', 'opacity-0');
+            }, 10);
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            const contentBox = document.getElementById('modalContent');
+            contentBox.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }, 200);
+        }
+
+        function downloadDocx() {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+            const footer = "</body></html>";
+            const sourceHTML = header + "<h1>" + currentTitle + "</h1><p>" + currentContent.replace(/\n/g, '<br>') + "</p>" + footer;
+            const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = currentTitle + '.doc';
+            link.click();
+        }
+
+        // Lần đầu tiên chạy
+        renderLectures(lectureData);
+    </script>
+</body>
+</html>
