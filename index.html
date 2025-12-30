@@ -7,11 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Hiệu ứng hover mạnh hơn cho lựa chọn */
         .lecture-card:hover {
             border-color: #3b82f6;
             background-color: #f0f7ff;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
         .options-panel {
             transition: all 0.3s ease-out;
@@ -26,13 +25,20 @@
             padding-top: 12px;
             border-top: 1px solid #e2e8f0;
         }
+        /* Hiệu ứng xoay icon khi mở danh mục */
+        .chevron-icon {
+            transition: transform 0.3s ease;
+        }
+        .rotate-90 {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-900">
 
     <div class="max-w-3xl mx-auto p-4 md:p-10">
         <div class="mb-8">
-            <h1 class="text-2xl font-extrabold text-slate-800">Thư Viện Thuyết Giảng</h1>
+            <h1 class="text-2xl font-extrabold text-slate-800 text-center md:text-left">Thư Viện Thuyết Giảng</h1>
             <div class="mt-4 relative">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
                 <input type="text" id="searchInput" placeholder="Tìm tên bài giảng..." 
@@ -116,18 +122,27 @@
 					}
 		];
 
-        function renderLectures(data) {
+        // Hàm render chính
+        function renderLectures(data, isSearching = false) {
             const container = document.getElementById('categoryContainer');
             container.innerHTML = '';
 
             data.forEach((category, catIndex) => {
                 const catSection = document.createElement('div');
-                catSection.className = 'mb-8';
+                catSection.className = 'mb-4 border-b border-slate-200 pb-2';
+                
+                // Header của danh mục (Click để đóng/mở)
                 catSection.innerHTML = `
-                    <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <i data-lucide="folder" class="w-4 h-4"></i> ${category.categoryName}
-                    </h2>
-                    <div id="cat-list-${catIndex}" class="space-y-3"></div>
+                    <div onclick="toggleCategory(${catIndex})" class="flex items-center justify-between cursor-pointer py-3 group">
+                        <h2 class="text-sm font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2 group-hover:text-blue-600 transition">
+                            <i data-lucide="folder" class="w-4 h-4 text-blue-500"></i> ${category.categoryName} 
+                            <span class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-normal">${category.lectures.length}</span>
+                        </h2>
+                        <i data-lucide="chevron-right" id="icon-${catIndex}" class="chevron-icon w-5 h-5 text-slate-400 ${isSearching ? 'rotate-90' : ''}"></i>
+                    </div>
+                    <div id="cat-content-${catIndex}" class="space-y-3 mt-2 ${isSearching ? '' : 'hidden'}">
+                        <div id="cat-list-${catIndex}" class="space-y-3 pb-4"></div>
+                    </div>
                 `;
                 container.appendChild(catSection);
 
@@ -135,22 +150,22 @@
                 category.lectures.forEach((lec, lecIndex) => {
                     const lectureId = `lec-${catIndex}-${lecIndex}`;
                     const row = document.createElement('div');
-                    row.className = 'lecture-card bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer';
+                    row.className = 'lecture-card bg-white p-4 rounded-xl border border-slate-100 shadow-sm cursor-pointer ml-2 md:ml-6';
                     row.innerHTML = `
                         <div onclick="toggleOptions('${lectureId}')">
-                            <div class="text-slate-800 font-semibold leading-snug break-words">
+                            <div class="text-slate-800 font-medium leading-snug break-words">
                                 ${lec.name}
                             </div>
                         </div>
-                        <div id="${lectureId}" class="options-panel flex gap-2 md:gap-6 justify-start">
-                            <button onclick="openModal('${lec.name} - Transcript', \`${lec.transcript}\`)" class="flex items-center gap-1.5 text-blue-600 font-medium text-sm hover:underline">
-                                <i data-lucide="file-text" class="w-4 h-4"></i> Transcript
+                        <div id="${lectureId}" class="options-panel flex gap-4 md:gap-6 justify-start">
+                            <button onclick="openModal('${lec.name} - Transcript', \`${lec.transcript}\`)" class="flex items-center gap-1.5 text-blue-600 font-medium text-xs hover:underline">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Transcript
                             </button>
-                            <button onclick="openModal('${lec.name} - Tóm tắt', \`${lec.summary}\`)" class="flex items-center gap-1.5 text-amber-600 font-medium text-sm hover:underline">
-                                <i data-lucide="align-left" class="w-4 h-4"></i> Tóm tắt
+                            <button onclick="openModal('${lec.name} - Tóm tắt', \`${lec.summary}\`)" class="flex items-center gap-1.5 text-amber-600 font-medium text-xs hover:underline">
+                                <i data-lucide="align-left" class="w-3.5 h-3.5"></i> Tóm tắt
                             </button>
-                            <a href="${lec.link}" target="_blank" class="flex items-center gap-1.5 text-emerald-600 font-medium text-sm hover:underline">
-                                <i data-lucide="external-link" class="w-4 h-4"></i> Link
+                            <a href="${lec.link}" target="_blank" class="flex items-center gap-1.5 text-emerald-600 font-medium text-xs hover:underline">
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Link
                             </a>
                         </div>
                     `;
@@ -160,16 +175,29 @@
             lucide.createIcons();
         }
 
+        // Hàm đóng mở danh mục
+        function toggleCategory(index) {
+            const content = document.getElementById(`cat-content-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-90');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-90');
+            }
+        }
+
         function toggleOptions(id) {
-            // Đóng các cái khác (nếu muốn)
+            // Chỉ đóng các option khác trong cùng một danh mục hoặc toàn trang (tùy chọn)
             document.querySelectorAll('.options-panel').forEach(el => {
                 if(el.id !== id) el.classList.remove('show');
             });
-            // Mở cái hiện tại
             document.getElementById(id).classList.toggle('show');
         }
 
-        // Logic Modal & Download giữ nguyên từ bản trước
+        // --- Logic Modal & Download ---
         let currentTitle = "", currentContent = "";
         function openModal(title, content) {
             currentTitle = title; currentContent = content;
@@ -191,15 +219,22 @@
             link.click();
         }
 
+        // Logic Tìm kiếm: Tự động mở danh mục nếu có kết quả khớp
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const term = e.target.value.toLowerCase();
+            if (term.trim() === "") {
+                renderLectures(lectureData, false);
+                return;
+            }
             const filteredData = lectureData.map(cat => ({
                 ...cat,
                 lectures: cat.lectures.filter(lec => lec.name.toLowerCase().includes(term))
             })).filter(cat => cat.lectures.length > 0);
-            renderLectures(filteredData);
+            
+            renderLectures(filteredData, true);
         });
 
+        // Khởi tạo ban đầu
         renderLectures(lectureData);
     </script>
 </body>
